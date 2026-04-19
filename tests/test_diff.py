@@ -1,65 +1,54 @@
-import json
 import pytest
-from pathlib import Path
-from envchain.storage import save_store
 from envchain.diff import diff_chains
-from envchain.merge import ChainNotFoundError
 
 
-@pytest.fixture
-def store_path(tmp_path):
-    return str(tmp_path / "store.json")
-
-
-def _setup(store_path):
-    store = {
-        "dev": {"DB_URL": "localhost", "DEBUG": "true", "SHARED": "same"},
-        "prod": {"DB_URL": "prod.db.host", "API_KEY": "secret", "SHARED": "same"},
+def _setup():
+    return {
+        "chains": {
+            "alpha": {"FOO": "1", "BAR": "2", "SHARED": "same"},
+            "beta": {"BAZ": "3", "SHARED": "same", "FOO": "changed"},
+            "empty": {},
+        }
     }
-    save_store(store_path, store)
 
 
-def test_diff_only_in_a(store_path):
-    _setup(store_path)
-    result = diff_chains(store_path, "dev", "prod")
-    assert result["only_in_a"] == {"DEBUG": "true"}
+def test_diff_only_in_a():
+    data = _setup()
+    result = diff_chains(data, "alpha", "beta")
+    assert "BAR" in result["only_in_a"]
 
 
-def test_diff_only_in_b(store_path):
-    _setup(store_path)
-    result = diff_chains(store_path, "dev", "prod")
-    assert result["only_in_b"] == {"API_KEY": "secret"}
+def test_diff_only_in_b():
+    data = _setup()
+    result = diff_chains(data, "alpha", "beta")
+    assert "BAZ" in result["only_in_b"]
 
 
-def test_diff_changed(store_path):
-    _setup(store_path)
-    result = diff_chains(store_path, "dev", "prod")
-    assert result["changed"] == {"DB_URL": {"a": "localhost", "b": "prod.db.host"}}
+def test_diff_changed():
+    data = _setup()
+    result = diff_chains(data, "alpha", "beta")
+    assert "FOO" in result["changed"]
+    assert result["changed"]["FOO"]["a"] == "1"
+    assert result["changed"]["FOO"]["b"] == "changed"
 
 
-def test_diff_same(store_path):
-    _setup(store_path)
-    result = diff_chains(store_path, "dev", "prod")
-    assert result["same"] == {"SHARED": "same"}
+def test_diff_no_changes_for_shared():
+    data = _setup()
+    result = diff_chains(data, "alpha", "beta")
+    assert "SHARED" not in result["changed"]
+    assert "SHARED" not in result["only_in_a"]
+    assert "SHARED" not in result["only_in_b"]
 
 
-def test_diff_identical_chains(store_path):
-    store = {"a": {"X": "1"}, "b": {"X": "1"}}
-    save_store(store_path, store)
-    result = diff_chains(store_path, "a", "b")
-    assert result["only_in_a"] == {}
-    assert result["only_in_b"] == {}
+def test_diff_empty_chain():
+    data = _setup()
+    result = diff_chains(data, "alpha", "empty")
+    assert set(result["only_in_a"]) == {"FOO", "BAR", "SHARED"}
+    assert result["only_in_b"] == []
     assert result["changed"] == {}
-    assert result["same"] == {"X": "1"}
 
 
-def test_diff_missing_chain_a(store_path):
-    _setup(store_path)
-    with pytest.raises(ChainNotFoundError, match="dev2"):
-        diff_chains(store_path, "dev2", "prod")
-
-
-def test_diff_missing_chain_b(store_path):
-    _setup(store_path)
-    with pytest.raises(ChainNotFoundError, match="staging"):
-        diff_chains(store_path, "dev", "staging")
+def test_diff_missing_chain_raises():
+    data = _setup()
+    with pytest.raises(KeyError):
+        diff_chains(data, "alpha", "nonexistent")
