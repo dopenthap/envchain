@@ -20,7 +20,10 @@ def load_store(store_path: Optional[Path] = None) -> Dict[str, Dict[str, str]]:
     if not path.exists():
         return {}
     with open(path, "r") as f:
-        return json.load(f)
+        try:
+            return json.load(f)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Store file at '{path}' contains invalid JSON: {e}") from e
 
 
 def save_store(data: Dict[str, Dict[str, str]], store_path: Optional[Path] = None) -> None:
