@@ -32,6 +32,13 @@ def test_protect_missing_chain_raises(store_path):
         protect_chain("ghost", store_path)
 
 
+def test_protect_already_protected_raises(store_path):
+    write_store(store_path, {"prod": {"KEY": "val"}})
+    protect_chain("prod", store_path)
+    with pytest.raises(ProtectError, match="already protected"):
+        protect_chain("prod", store_path)
+
+
 def test_unprotect_chain(store_path):
     write_store(store_path, {"prod": {"KEY": "val"}})
     protect_chain("prod", store_path)
