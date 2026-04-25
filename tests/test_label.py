@@ -64,6 +64,12 @@ def test_clear_label_not_set_raises(store_path):
         clear_label(store_path, "prod")
 
 
+def test_clear_label_missing_chain_raises(store_path):
+    write_store(store_path, {})
+    with pytest.raises(LabelError, match="not found"):
+        clear_label(store_path, "ghost")
+
+
 def test_list_labels(store_path):
     write_store(store_path, {"prod": {}, "dev": {}, "staging": {}})
     set_label(store_path, "prod", "Production")
