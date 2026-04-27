@@ -51,3 +51,13 @@ def test_export_invalid_format(runner):
     with patch("envchain.cli.get_chain", return_value=SAMPLE_VARS):
         result = runner.invoke(cli, ["export", "mychain", "--format", "zsh"])
     assert result.exit_code != 0
+
+
+def test_export_value_with_special_chars(runner):
+    """Ensure values containing spaces or quotes are exported correctly."""
+    special_vars = {"GREETING": 'hello world', "QUOTE": 'it\'s fine'}
+    with patch("envchain.cli.get_chain", return_value=special_vars):
+        result = runner.invoke(cli, ["export", "mychain"])
+    assert result.exit_code == 0
+    assert 'export GREETING="hello world"' in result.output
+    assert "export QUOTE=" in result.output
