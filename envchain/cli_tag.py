@@ -41,7 +41,12 @@ def remove_cmd(chain, tag):
 @click.argument("chain")
 def list_cmd(chain):
     """List tags for a chain."""
-    tags = get_tags(get_store_path(), chain)
+    try:
+        tags = get_tags(get_store_path(), chain)
+    except TagError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise SystemExit(1)
+
     if tags:
         for t in tags:
             click.echo(t)
