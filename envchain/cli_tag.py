@@ -56,11 +56,15 @@ def list_cmd(chain):
 
 @tag_cmd.command("find")
 @click.argument("tag")
-def find_cmd(tag):
+@click.option("--count", is_flag=True, default=False, help="Show the number of matching chains.")
+def find_cmd(tag, count):
     """Find chains with a given tag."""
     chains = find_by_tag(get_store_path(), tag)
     if chains:
-        for c in chains:
-            click.echo(c)
+        if count:
+            click.echo(f"{len(chains)} chain(s) tagged '{tag}'")
+        else:
+            for c in chains:
+                click.echo(c)
     else:
         click.echo(f"No chains tagged '{tag}'")
