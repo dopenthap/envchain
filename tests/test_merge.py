@@ -71,3 +71,13 @@ def test_merge_does_not_mutate_src(store_path):
     merge_chains("src", "dst", "test_project", overwrite=True)
     store = load_store(store_path)
     assert store["src"] == {"K": "v"}
+
+
+def test_merge_returns_combined_keys(store_path):
+    """Merged result should contain keys from both src and dst chains."""
+    _setup_store(store_path, {
+        "src": {"A": "1", "B": "2"},
+        "dst": {"C": "3", "D": "4"},
+    })
+    merged = merge_chains("src", "dst", "test_project", overwrite=False)
+    assert set(merged.keys()) == {"A", "B", "C", "D"}
